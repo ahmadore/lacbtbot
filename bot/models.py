@@ -6,12 +6,42 @@ from django.db import models
 class Candidate(models.Model):
     uid = models.BigIntegerField()
     has_not_taken_exam = models.BooleanField(default=True)
+    
 
 
 class Conversation(models.Model):
-    candidate = models.ForeignKey(Candidate)
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE)
     salute = models.BooleanField(default=False)
     about = models.BooleanField(default=False)
     ask = models.BooleanField(default=False)
     previous_message = models.TextField(default='')
     current_message = models.TextField(default='')
+    exam_in_progress = models.BooleanField(default=False)
+
+class Exam(models.Model):
+    """
+         dgAAAAA
+    """
+    title = models.TextField()
+
+
+class Question(models.Model):
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='exam')
+    question_text=models.TextField()
+    is_answered = models.BooleanField(default=False)
+
+class Option(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='question')
+    option_text = models.TextField()
+    is_answer = models.BooleanField(default=False)
+
+
+class ExamSession(models.Model):
+    """
+        candidate: represents the candidate 
+    """
+    candidate = models.OneToOneField(Candidate, on_delete=models.CASCADE)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+
+
+
