@@ -14,8 +14,8 @@ class Conversation(models.Model):
     salute = models.BooleanField(default=False)
     about = models.BooleanField(default=False)
     ask = models.BooleanField(default=False)
-    previous_message = models.TextField(default='')
-    current_message = models.TextField(default='')
+    previous_message = models.TextField(default='', null=True, blank=True)
+    current_message = models.TextField(default='', null=True, blank=True)
     exam_in_progress = models.BooleanField(default=False)
 
 class Exam(models.Model):
@@ -27,11 +27,11 @@ class Exam(models.Model):
 
 class Question(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='exam')
-    question_text=models.TextField()
+    question_text = models.TextField()
     is_answered = models.BooleanField(default=False)
 
 class Option(models.Model):
-    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='question')
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='option')
     option_text = models.TextField()
     is_answer = models.BooleanField(default=False)
 
