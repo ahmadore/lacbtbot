@@ -1,0 +1,1 @@
+web: gunicorn lacbtbot.wsgi --log-file -
