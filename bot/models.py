@@ -16,20 +16,20 @@ class Conversation(models.Model):
     ask = models.BooleanField(default=False)
     first = models.BooleanField(default=False)
     previous_message = models.TextField(default='', null=True, blank=True)
-    current_message = models.TextField(default='', null=True, blank=True)
     exam_in_progress = models.BooleanField(default=False)
 
 class Exam(models.Model):
-    """
-         dgAAAAA
-    """
-    title = models.TextField()
+    candidate=models.ForeignKey(Candidate, on_delete=models.CASCADE)
+    finished=models.BooleanField(default=False)
+    score = models.IntegerField(default=0)
 
 
 class Question(models.Model):
-    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='exam')
     question_text = models.TextField()
-    is_answered = models.BooleanField(default=False)
+    
+    def __str__(self):
+        return '%i' %self.id
+
 
 class Option(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='option')
@@ -38,13 +38,7 @@ class Option(models.Model):
 
 
 class ExamSession(models.Model):
-    """
-        candidate: represents the candidate 
-    """
-    candidate = models.OneToOneField(Candidate, on_delete=models.CASCADE)
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-
-
-class ExamScore(models.Model):
-    session = models.OneToOneField(ExamSession, on_delete=models.CASCADE)
-    score = models.IntegerField(default=0)
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE)
+    is_answered=models.BooleanField(default=False)

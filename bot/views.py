@@ -45,19 +45,18 @@ class lacbtView(generic.View):
             convoModel.salute = True
             convoModel.about = True
             convoModel.ask = True
+            convoModel.first=False
+            convoModel.previous_message =''
             convoModel.save()
 
     def send_message(self, convoModel, sender_id, messages):
         for message in messages:
             if message['type'] == 'salute':
                 post_fb_message(sender_id, message['text'])
-                convoModel.salute = True
             if message['type'] == 'statement':
                 post_fb_message(sender_id, message['text'])
-                convoModel.about = True
             if message['type'] == 'question':
                 post_fb_message(sender_id, message['text'])
-                convoModel.ask = True
             if message['type'] == 'exam_question':
                 options = [
 {
@@ -73,7 +72,7 @@ for option in messages[0]['options']
 ]
                 post_fb_question(sender_id, messages[0])
                 post_fb_options(sender_id, options)
-        convoModel.save()
+
 
     def post(self, request, *args, **kwargs):
         incoming_message = json.loads(self.request.body.decode('utf-8'))
@@ -87,19 +86,22 @@ for option in messages[0]['options']
                     elif candidate and not created:
                         convo, createdd = Conversation.objects.get_or_create(candidate=candidate)
                         if not convo.exam_in_progress:
-                            if createdd:
+                            if convo and createdd:
                                 self.greet_returning_user(convo, message['sender']['id'])
                             if not createdd and not convo.ask:
                                 self.send_message(convo, message['sender']['id'], ({'text': 'do you want to take an exam now?',
                                                                                     'type': 'question'
                                                                                 },))
-                            else:
+                                convo.ask=True
+                                convo.save()
+                            if not createdd and convo.ask:
                                 resp_message = analize(message, convo)
                                 self.send_message(convo, message['sender']['id'], resp_message)
                         if convo.exam_in_progress and not convo.first:
                             print('exams in progress')
-                            if Question.objects.filter(examsession__candidate=candidate).filter(is_answered=False):
-                                question = Question.objects.filter(examsession__candidate=candidate).filter(is_answered=False).first()
+                            if Exam.objects.filter(candidate__uid=message['sender']['id']).filter(finished=False):
+                                exam = Exam.objects.filter(candidate__uid=message['sender']['id']).filter(finished=False)[0]
+                                question  = ExamSession.objects.filter(exam=exam).filter(is_answered=False)[0].question
                                 sQuestion = QuestionSerializer(question).data
                                 question = sQuestion['question_text']
                                 options = sQuestion['option']
@@ -110,17 +112,15 @@ for option in messages[0]['options']
                                     'options':option,
                                     'type':'exam_question'
                                 },)
-                                ExamScore.objects.create(session=candidate.examsession)
                                 convo.first=True
                                 convo.save()
+                                self.send_message(convo, message['sender']['id'], resp)
                             else:
                                 resp = ({'type':'statement',
                                     'text':'you dont have questions in the exams yet'
                                 },)
-                                convo.ask=False
-                                convo.first=False
-                                convo.save()
-                            self.send_message(convo, message['sender']['id'], resp)
+                                self.send_message(convo, message['sender']['id'], resp)
+                                convo.delete()
                 #if postback instead
                 #mark the question from the payload and increase score by 1 or 0
                 #check there is an unanswered question in the exam-session
@@ -129,19 +129,18 @@ for option in messages[0]['options']
                     sid = message['sender']['id']
                     option_id = message['postback']['payload']
                     option=Option.objects.get(id=option_id)
-                    convo = Conversation.objects.get(candidate__uid=sid)
-                    examsession = ExamSession.objects.get(candidate__uid=sid)
-                    score = ExamScore.objects.get(session=examsession)
-                    question = Question.objects.filter(examsession__candidate__uid=sid).first()
+                    convo = Conversation.objects.filter(candidate__uid=sid)
+                    exam = Exam.objects.filter(examsession__question__option__id=option_id)[0]
+                    question = ExamSession.objects.filter(question__option__id=option_id)[0]
                     if option.is_answer:
-                        score.score += 1
-                        score.save()
+                        exam.score += 1
+                        exam.save()
                     question.is_answered=True
                     question.save()
-                    if Question.objects.filter(examsession__candidate__uid=sid).filter(is_answered=False):
+                    if not exam.finished and convo.first:
                         try:
-                            question = Question.objects.filter(examsession__candidate__uid=sid).filter(is_answered=False).first()
-                            sQuestion = QuestionSerializer(question).data
+                            question = ExamSession.objects.filter(exam=exam).filter(is_answered=False)
+                            sQuestion = QuestionSerializer(question[0].question).data
                             question = sQuestion['question_text']
                             options = sQuestion['option']
                             option = []
@@ -152,20 +151,35 @@ for option in messages[0]['options']
                                 'type':'exam_question'
                             },)
                         except:
-                            raise
                             resp = ({'type':'statement',
-                                'text':'you dont have questions in the exams yet'
+                                'text':'you have answered all your questions for this session'
                             },)
-                            convo.delete()
+                            self.send_message(convo, message['sender']['id'], resp)
+                            score = exam.score
+                            exam.finished = True
+                            exam.save()
+                            examsession = ExamSession.objects.filter(exam=exam)
+                            for i in examsession:
+                                i.delete()
+                            resp = ({'type':'statement',
+                                    'text':'your score for this exam is--' + str(score)
+                                },{'type':'statement',
+                                    'text':'we will love to see you again'
+                                })
                         self.send_message(convo, message['sender']['id'], resp)
+                        convo.delete()
                     else:
-                        score = ExamScore.objects.get(session=examsession).score
+                        score = exam.score
+                        exam.finished = True
+                        exam.save()
+                        examsession = ExamSession.objects.filter(exam=exam)
+                        for i in examsession:
+                            i.delete()
                         resp = ({'type':'statement',
                                 'text':'your score for this exam is--' + str(score)
                             },)
                         self.send_message(convo, message['sender']['id'], resp)
                         convo.delete()
-                        examssion.delete()
         return HttpResponse()
 
 
@@ -229,17 +243,8 @@ def analize(recvd_msg, convoModel):
     resp = ({
             'text':'These are the currently available exams', 'type':'statement',
         },{
-            'text':'A-use of english', 'type':'statement'
-        },{
-            'text':'B-Mathemaics', 'type':'statement'
-        },{
-            'text':'C-Physics', 'type':'statement'
-        },{
-            'text':'D-Chemistry', 'type':'statement'
-        },{
-            'text':'E-Biology', 'type':'statement'
+            'text':'Currently we have only Use of English available. Respond to start exams', 'type':'statement'
         })
-    elist = {'a':1,'b':2,'c':3,'d':4,'e':5,'f':6}
     if token in positive_reply and convoModel.previous_message not in positive_reply:
         convoModel.previous_message = token
         convoModel.save()
@@ -252,20 +257,16 @@ def analize(recvd_msg, convoModel):
         {'text':'Have nice day',
         'type':'statement'
         },)
-    if convoModel.previous_message in positive_reply:
+    if convoModel.previous_message in positive_reply and not convoModel.exam_in_progress and token not in negative_reply:
         convoModel.exam_in_progress = True
         convoModel.save()
-        #if token.lower() in elist.keys():
-        #    exam_id = elist[token.lower()]
-        exam = Exam.objects.get(id=1)
-        #questions = Question.objects.filter(exam=exam).order_by('?')[:20]
-        questions = Question.objects.all()
-        examsession = ExamSession.objects.bulk_create([ExamSession(candidate=convoModel.candidate, question=q) for q in questions])
-        print(examsession)
+        questions = Question.objects.all().order_by('?')[:5]
+        exam = Exam.objects.create(candidate=convoModel.candidate)
+        examsession = ExamSession.objects.bulk_create([ExamSession(candidate=convoModel.candidate, exam=exam, question=q) for q in questions])
         return ({'text':'your exam begin now',
             'type':'statement'
         },)
-    convoModel.candidate.delete()
+    convoModel.delete()
     return ({'text':'Dont know what you are taking about',
     'type':'statement'
     },)
