@@ -14,6 +14,7 @@ class Conversation(models.Model):
     salute = models.BooleanField(default=False)
     about = models.BooleanField(default=False)
     ask = models.BooleanField(default=False)
+    first = models.BooleanField(default=False)
     previous_message = models.TextField(default='', null=True, blank=True)
     current_message = models.TextField(default='', null=True, blank=True)
     exam_in_progress = models.BooleanField(default=False)
@@ -44,4 +45,6 @@ class ExamSession(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
 
 
-
+class ExamScore(models.Model):
+    session = models.OneToOneField(ExamSession, on_delete=models.CASCADE)
+    score = models.IntegerField(default=0)

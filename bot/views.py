@@ -61,12 +61,12 @@ class lacbtView(generic.View):
             if message['type'] == 'exam_question':
                 options = [
 {
-	"title": option,
+	"title": option[0],
 	"buttons":[
       {
         "type":"postback",
         "title":"is answer",
-        "payload":"DEVELOPER_DEFINED_PAYLOAD"
+        "payload":option[1]
       }]
 }
 for option in messages[0]['options']
@@ -96,40 +96,78 @@ for option in messages[0]['options']
                             else:
                                 resp_message = analize(message, convo)
                                 self.send_message(convo, message['sender']['id'], resp_message)
-                        if convo.exam_in_progress:
+                        if convo.exam_in_progress and not convo.first:
                             print('exams in progress')
-                            try:
+                            if Question.objects.filter(examsession__candidate=candidate).filter(is_answered=False):
                                 question = Question.objects.filter(examsession__candidate=candidate).filter(is_answered=False).first()
-                                #question = Question.objects.all()
-                                #print(question)
                                 sQuestion = QuestionSerializer(question).data
-                                print(question)
                                 question = sQuestion['question_text']
-                                #print(question)
                                 options = sQuestion['option']
-                                print("---------")
-                                print(options)
-                                print(sQuestion['option'])
-                                print("---------")
                                 option = []
                                 for optn in options:
-                                    option.append(optn['option_text'])
-                                print(options)
+                                    option.append((optn['option_text'],optn['id']))
                                 resp = ({'question':question,
                                     'options':option,
                                     'type':'exam_question'
                                 },)
-                                # return
-                            except:
-                                raise
+                                ExamScore.objects.create(session=candidate.examsession)
+                                convo.first=True
+                                convo.save()
+                            else:
                                 resp = ({'type':'statement',
                                     'text':'you dont have questions in the exams yet'
                                 },)
-                                #convo.exam_in_progress = False
-                                #convo.ask = False
-                                convo.delete()
+                                convo.ask=False
+                                convo.first=False
+                                convo.save()
                             self.send_message(convo, message['sender']['id'], resp)
+                #if postback instead
+                #mark the question from the payload and increase score by 1 or 0
+                #check there is an unanswered question in the exam-session
+                #if there is, serve it, else, save and return exam-score and delete exam-session, conversation
+                if 'postback' in message:
+                    sid = message['sender']['id']
+                    option_id = message['postback']['payload']
+                    option=Option.objects.get(id=option_id)
+                    convo = Conversation.objects.get(candidate__uid=sid)
+                    examsession = ExamSession.objects.get(candidate__uid=sid)
+                    score = ExamScore.objects.get(session=examsession)
+                    question = Question.objects.filter(examsession__candidate__uid=sid).first()
+                    if option.is_answer:
+                        score.score += 1
+                        score.save()
+                    question.is_answered=True
+                    question.save()
+                    if Question.objects.filter(examsession__candidate__uid=sid).filter(is_answered=False):
+                        try:
+                            question = Question.objects.filter(examsession__candidate__uid=sid).filter(is_answered=False).first()
+                            sQuestion = QuestionSerializer(question).data
+                            question = sQuestion['question_text']
+                            options = sQuestion['option']
+                            option = []
+                            for optn in options:
+                                option.append((optn['option_text'],optn['id']))
+                            resp = ({'question':question,
+                                'options':option,
+                                'type':'exam_question'
+                            },)
+                        except:
+                            raise
+                            resp = ({'type':'statement',
+                                'text':'you dont have questions in the exams yet'
+                            },)
+                            convo.delete()
+                        self.send_message(convo, message['sender']['id'], resp)
+                    else:
+                        score = ExamScore.objects.get(session=examsession).score
+                        resp = ({'type':'statement',
+                                'text':'your score for this exam is--' + str(score)
+                            },)
+                        self.send_message(convo, message['sender']['id'], resp)
+                        convo.delete()
+                        examssion.delete()
         return HttpResponse()
+
 
 
 def post_fb_message(fbid, received_message):
