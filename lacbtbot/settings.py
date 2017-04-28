@@ -1,8 +1,7 @@
 import os
+import dj_database_url
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
+DATABASES[‘default’] = dj_database_url.config()
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
@@ -13,7 +12,10 @@ SECRET_KEY = 'tp+-y%2(s7!#ih0e0%ymr(7v9=8!7e@6b6k^-c^w+o80w66c42'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = []
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+ALLOWED_HOSTS = [lacbtbot.herokuapp.com’] 
+
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
