@@ -61,7 +61,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'lacbtbot.wsgi_heroku.application'
+WSGI_APPLICATION = 'lacbtbot.wsgi.application'
 
 
 # Database
