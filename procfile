@@ -1,1 +1,1 @@
-web: gunicorn lacbtbot.wsgi --log-file -
+web: gunicorn --pythonpath django lacbtbot.wsgi --log-file -
