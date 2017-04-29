@@ -68,7 +68,8 @@ WSGI_APPLICATION = 'lacbtbot.wsgi.application'
 
 
 
-DATABASES = {}
+DATABASES = {'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2'}
 
 
 # Password validation
