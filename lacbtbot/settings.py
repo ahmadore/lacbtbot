@@ -14,7 +14,7 @@ DEBUG = False
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-ALLOWED_HOSTS = ['lacbtbot.herokuapp.com'] 
+ALLOWED_HOSTS = ['https://lacbtbot.herokuapp.com'] 
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
