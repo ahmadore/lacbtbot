@@ -1,7 +1,7 @@
 import os
 import dj_database_url
 
-DATABASES['default'] =  dj_database_url.config()
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
@@ -72,7 +72,7 @@ WSGI_APPLICATION = 'lacbtbot.wsgi.application'
 DATABASES = {'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2'}}
 
-
+DATABASES['default'] =  dj_database_url.config()
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators
 
