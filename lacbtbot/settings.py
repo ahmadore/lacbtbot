@@ -68,7 +68,7 @@ WSGI_APPLICATION = 'lacbtbot.wsgi.application'
 
 
 
-DATABASES = []
+DATABASES = {}
 
 
 # Password validation
