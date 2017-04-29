@@ -7,12 +7,14 @@ import dj_database_url
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'tp+-y%2(s7!#ih0e0%ymr(7v9=8!7e@6b6k^-c^w+o80w66c42'
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+SECRET_KEY = os.environ['SECRET_KEY']
 
 ALLOWED_HOSTS = ['*'] 
 
