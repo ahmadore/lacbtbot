@@ -68,11 +68,7 @@ WSGI_APPLICATION = 'lacbtbot.wsgi.application'
 
 
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default=config('DATABASE_URL')
-    )
-}
+DATABASES = []
 
 
 # Password validation
