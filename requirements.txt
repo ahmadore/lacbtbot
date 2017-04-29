@@ -8,3 +8,8 @@ whitenoise==3.3.0
 requests==2.2.1
 dj-database-url==0.3.0
 dj-static==0.0.6
+psycopg2==2.6.1
+Markdown==2.6.6
+Unipath==1.0
+python-decouple==3
+bleach==1.4.3
